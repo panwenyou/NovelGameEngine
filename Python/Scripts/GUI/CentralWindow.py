@@ -7,6 +7,9 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 
+from MyFrame import MyFrame
+from ToolFrame import ToolFrame
+
 from utils import file_utils
 
 
@@ -19,17 +22,17 @@ class CentralWidget(QWidget):
     def initLayout(self):
         self.layout = QHBoxLayout()
         self.h_splliter = QSplitter(Qt.Horizontal)
-        self.left_frame = QFrame(self)
+        self.left_frame = ToolFrame(self, u'工具栏')
         self.left_frame.setFrameShape(QFrame.StyledPanel)
         height = self.left_frame.frameGeometry().height()
-        self.left_frame.resize(100, height)
-        self.middle_frame = QFrame(self)
+        self.left_frame.resize(150, height)
+        self.middle_frame = MyFrame(self, u'情节树')
         self.middle_frame.setFrameShape(QFrame.StyledPanel)
 
         self.right_splliter = QSplitter(Qt.Vertical)
-        self.right_top_frame = QFrame(self)
+        self.right_top_frame = MyFrame(self, u'属性窗口')
         self.right_top_frame.setFrameShape(QFrame.StyledPanel)
-        self.right_bottom_frame = QFrame(self)
+        self.right_bottom_frame = MyFrame(self, u'章节')
         self.right_bottom_frame.setFrameShape(QFrame.StyledPanel)
         self.right_splliter.addWidget(self.right_top_frame)
         self.right_splliter.addWidget(self.right_bottom_frame)
