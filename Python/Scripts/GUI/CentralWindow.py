@@ -9,6 +9,7 @@ from PyQt5.QtCore import Qt
 
 from MyFrame import MyFrame
 from ToolFrame import ToolFrame
+from TreeFrame import TreeFrame
 
 from utils import file_utils
 
@@ -26,7 +27,7 @@ class CentralWidget(QWidget):
         self.left_frame.setFrameShape(QFrame.StyledPanel)
         height = self.left_frame.frameGeometry().height()
         self.left_frame.resize(150, height)
-        self.middle_frame = MyFrame(self, u'情节树')
+        self.middle_frame = TreeFrame(self, u'情节树')
         self.middle_frame.setFrameShape(QFrame.StyledPanel)
 
         self.right_splliter = QSplitter(Qt.Vertical)
