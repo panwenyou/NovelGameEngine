@@ -24,3 +24,6 @@ class MyFrame(QFrame):
 
 	def initUI(self):
 		self.root_panel.addStretch(1)
+
+	def onRefreshUI(self):
+		pass

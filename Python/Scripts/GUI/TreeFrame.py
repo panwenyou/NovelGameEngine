@@ -8,7 +8,7 @@ from PyQt5.QtGui import QIcon, QDrag, QPainter, QColor, QBrush
 from PyQt5.QtCore import Qt, QMimeData, QRect
 
 
-from utils import file_utils, common_util
+from utils import file_util, common_util, data_util
 from MyFrame import MyFrame
 
 from data.tools_data import tools
@@ -118,6 +118,8 @@ class TreeFrame(MyFrame):
 
     def dropEvent(self, e):
         print e.mimeData().text()
+        if not data_util.cur_story:
+            return
         tool_id = int(e.mimeData().text())
         drop_pos = (e.pos().x(), e.pos().y())
         if tool_id in tools:

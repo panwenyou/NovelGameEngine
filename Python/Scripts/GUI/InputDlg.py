@@ -21,9 +21,11 @@ class InputDlg(QWidget):
 
 	def buildInput(self, data_list, call_back):
 		self.data_dict = {}
-		for key in data_list:
+		for info in data_list:
+			key = info[0]
+			content = info[1]
 			l = QHBoxLayout()
-			label = QLabel(key)
+			label = QLabel(content)
 			text_edit = QLineEdit('')
 			l.addWidget(label)
 			l.addWidget(text_edit)

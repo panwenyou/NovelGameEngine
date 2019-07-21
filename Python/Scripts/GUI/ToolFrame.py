@@ -37,11 +37,14 @@ class ListView(QWidget):
     def __init__(self):
         super(ListView, self).__init__()
         self.v_layout = QVBoxLayout()
+        self.setLayout(self.v_layout)
+
+    def initTools(self):
         for tool_id in tools.iterkeys():
             MapButton = ToolButton(tool_id, self)
             self.v_layout.addWidget(MapButton)
         self.v_layout.addStretch(1)
-        self.setLayout(self.v_layout)
+        self.update()
 
 
 class ToolFrame(MyFrame):
@@ -51,7 +54,9 @@ class ToolFrame(MyFrame):
     def initUI(self):
         self.scroll_area = QScrollArea()
         self.list_view = ListView()
+        self.list_view.initTools()
         self.scroll_area.resize(100, 1000)
         self.scroll_area.setWidget(self.list_view)
         self.root_panel.addWidget(self.scroll_area)
+
 
