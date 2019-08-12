@@ -3,12 +3,14 @@
 import file_util
 import os
 import json
+import section_util
 
 cur_story = ''
 story_path = ''
-category_dict = {}
 
+# {name1:0, name2:0}
 stories_dict = {}
+
 
 
 def getAllStroies():
@@ -21,23 +23,26 @@ def getAllStroies():
 		return False
 	return True
 
-
 def hasStory(name):
 	return name in stories_dict
 
-
-def parseStory(content):
-	pass
-
 def openStory(path):
 	global cur_story, cur_path
+
+	# 先保存一记
+	cur_story and section_util.saveCategory()
+
 	cur_path = path
 	cur_story = path.split('/')[-1]
 	print cur_story
 	print cur_path
+	section_util.loadCategory(cur_story)
 
 def newStory(name):
 	global cur_story, cur_path
+	# 先保存一记
+	cur_story and ection_util.saveCategory()
+
 	result = ''
 	stories_root = file_util.getStoryFileRoot()
 
@@ -74,7 +79,9 @@ def newStory(name):
 		cur_path = ''.join((stories_root, "\\", name))
 		cur_story = name
 		os.mkdir(cur_path)
-	
+
+		# 创建新的目录数据
+		section_util.loadCategory(cur_story)
 		return True
 
 	return False
