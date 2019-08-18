@@ -59,20 +59,40 @@ class MyTreeWidget(QTreeWidget):
         rename_action = menu.addAction("重命名")
         action = menu.exec_(self.mapToGlobal(pos))
         if action == del_action:
-            print 'delete'
+            self.onDeleteAction()
         elif action == add_action:
             self.onAddAction()
-        elif action == 'rename_action':
-            print 'rename'
+        elif action == rename_action:
+            self.onRenameAction()
 
     @pyqtSlot(MyTreeWidgetItem, MyTreeWidgetItem)
     def itemSelected(self, current, previous):
-        print current.section_id
-        self.cur_item = current
+        if current:
+            print current.section_id
+            self.cur_item = current
 
     def onAddAction(self):
         self.input_dlg = InputDlg.InputDlg()
         self.input_dlg.buildInput((('name','章节名'),), self.onSectionAdded)
+        self.input_dlg.show()
+
+    def onDeleteAction(self):
+        if not self.cur_item:
+            return
+        if self.cur_item is self.root_item:
+            return
+        # 从章节信息中删除
+        section_util.deleteSection(self.cur_item.section_id)
+        # UI删除
+        self.cur_item.parent().removeChild(self.cur_item)
+        self.cur_item = None
+        self.update()
+
+    def onRenameAction(self):
+        if self.cur_item is self.root_item:
+            return
+        self.input_dlg = InputDlg.InputDlg()
+        self.input_dlg.buildInput((('name','章节名'),), self.onSectionRenamed)
         self.input_dlg.show()
 
     def onSectionAdded(self, data_dict):
@@ -86,6 +106,27 @@ class MyTreeWidget(QTreeWidget):
         else:
             section_key = section_util.addSection(None, name)
             cate_item = MyTreeWidgetItem(section_key, name, self.root_item)
+
+    def onSectionRenamed(self, data_dict):
+        self.input_dlg = None
+        name = data_dict['name']['widget'].text()
+        if not name:
+            return
+        if self.cur_item:
+            section_key = section_util.renameSection(self.cur_item.section_id, name)
+            self.cur_item.setText(0, name)
+
+    def buildTreeItems(self, cate_dict, parent):
+        # 递归创建目录树
+        for key, section in cate_dict.iteritems():
+            name = section['name']
+            if parent:
+                cate_item = MyTreeWidgetItem(key, name, parent)
+            else:
+                cate_item = MyTreeWidgetItem(key, name, self.root_item)
+            sub_cate = cate_dict[key].get('sub')
+            if sub_cate:
+                self.buildTreeItems(sub_cate, cate_item)
 
 class CategoryFrame(MyFrame):
     def __init__(self, widget=None, title=''):
@@ -102,23 +143,17 @@ class CategoryFrame(MyFrame):
     def onLoad(self, data):
         pass
 
-    def buildCategory(self, cate_dict, parent):
+    def buildCategory(self, cate_dict):
         # 要先清空原来的树目录
         self.treeWidget.clear()
-        # 递归创建目录树
-        for key, section in cate_dict.iteritems():
-            name = section['name']
-            cate_item = MyTreeWidgetItem(key, name, parent)
-            sub_cate = cate_dict.get('sub')
-            if sub_cate:
-                self.buildCategory(sub_cate, cate_item)
+        self.treeWidget.buildTreeItems(cate_dict, None)
         self.treeWidget.update()
 
     def onNewCategory(self):
         cate_dict = section_util.cur_category.category_dict
         if cate_dict:
             # 根据category去初始化目录视图
-            self.buildCategory(cate_dict, self.treeWidget)
+            self.buildCategory(cate_dict)
 
     def onRefreshUI(self):
         self.onNewCategory()
