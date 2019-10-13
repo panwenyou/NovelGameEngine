@@ -8,7 +8,7 @@ from PyQt5.QtGui import QIcon, QDrag, QPainter, QColor, QBrush
 from PyQt5.QtCore import Qt, QMimeData, QRect
 
 
-from utils import file_util, common_util, data_util
+from utils import file_util, common_util, data_util, storyline_util
 from MyFrame import MyFrame
 
 from data.tools_data import tools
@@ -26,6 +26,8 @@ class Node(object):
         self.height = 60
 
         self.next_nodes = {}
+        # 通知后台
+        storyline_util.OnAddNode(node_id)
 
     def addNext(self, next_node):
         self.next_nodes[next_node.node_id] = next_node

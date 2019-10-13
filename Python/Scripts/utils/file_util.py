@@ -10,4 +10,7 @@ def getImageFilePath(file_name):
 def getStoryFileRoot():
 	return ''.join((root_dir_name, '\\stories'))
 
+def getTemplatePath(file_name):
+    return ''.join((root_dir_name, '\\res\\template\\', file_name))
+
 print getImageFilePath('exit.jpg')

@@ -10,6 +10,7 @@ from PyQt5.QtCore import Qt, QMimeData, QRect, pyqtSlot, QTimer
 
 
 cur_category = {}
+cur_section = ''
 
 
 class Category(object):
@@ -116,7 +117,7 @@ class Category(object):
             # 重试
             print ''.join(('read file error:', cat_file_path))
             save_timer = QTimer()
-            save_timer.timeout.connect(saveSection)
+            save_timer.timeout.connect(saveCategory)
         return
 
 

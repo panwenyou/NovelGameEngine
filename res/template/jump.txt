@@ -1,0 +1,7 @@
+# 这是一行注释 this is a line of comment 
+# 这个就比较简单了，就是跳转到某一章节的某一个节点
+# 这个功能要配合图，寻找到section_id和node_id，如果输入的东东找不到，那么会出错喔
+# 以第一行能解析的内容为准
+# 格式为 “J,section_id,node_id”
+
+J,1566117467.39section,1566117478.41SequenceNode
