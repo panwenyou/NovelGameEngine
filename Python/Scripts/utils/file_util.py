@@ -13,4 +13,8 @@ def getStoryFileRoot():
 def getTemplatePath(file_name):
     return ''.join((root_dir_name, '\\res\\template\\', file_name))
 
-print getImageFilePath('exit.jpg')
+def getUINodePath():
+    story_id = cur_story.id
+    section_id = cur_story.category.cur_section.id
+    root_path = getStoryFileRoot()
+    return ''.join((root_path, '\\', story_id, '\\', section_id, '\\ui.json'))

@@ -3,8 +3,9 @@
 
 import sys
 import os
+import json
 from PyQt5.QtWidgets import *
-from PyQt5.QtGui import QIcon, QDrag, QPainter, QColor, QBrush
+from PyQt5.QtGui import QIcon, QDrag, QPainter, QColor, QBrush, QPen
 from PyQt5.QtCore import Qt, QMimeData, QRect
 
 
@@ -15,26 +16,23 @@ from data.tools_data import tools
 
 
 class Node(object):
-    def __init__(self, node_id, tool_id, x, y):
+    def __init__(self, tool_id, x, y, node_id=None, width=90, height=60):
         super(Node, self).__init__()
-
+        if not node_id:
+            node_id = storyline_util.OnAddNode(tool_id)
         self.node_id = node_id
         self.tool_id = tool_id
         self.x = x
         self.y = y
-        self.width = 90
-        self.height = 60
-
-        self.next_nodes = {}
-        # 通知后台
-        storyline_util.OnAddNode(node_id)
+        self.width = width
+        self.height = height
+        self.relative_lines = []
 
     def addNext(self, next_node):
-        self.next_nodes[next_node.node_id] = next_node
+        storyline_util.OnAddNext(self.node_id, next_node.node_id)
 
-    def cancelNext(self, node_id):
-        if node_id in self.next_nodes:
-            self.next_nodes.pop(node_id)
+    def cancelNext(self, next_node):
+        storyline_util.OnCancelNext(self.node_id, next_node.node_id)
 
     def checkClicked(self, x, y):
         r = self.x + self.width
@@ -56,6 +54,73 @@ class Node(object):
         qp.drawRect(self.x, self.y, self.width, self.height)
         qp.drawText(QRect(self.x, self.y, self.width, self.height), Qt.AlignCenter, tools[self.tool_id]['name'])
 
+    def Pack(self):
+        return {"node_id": self.node_id, "tool_id": self.tool_id, "x": self.x, "y": self.y, "width": self.width, "height": self.height}
+
+    def AddRelativeLine(self, line):
+        self.relative_lines.append(line)
+    
+    def destroy(self):
+        storyline_util.OnDeleteNode(self.node_id)
+
+class Line(object):
+    def __init__(self, start_node, end_node):
+        self.id = common_util.genId("Line")
+        self.start_node = start_node
+        self.end_node = end_node
+
+        self.start_pos = None
+        self.end_pos = None
+        self.k = 1
+        self.b = 0
+        self.resetPos()
+    
+    def resetPos(self):
+        start_node = self.start_node
+        end_node = self.end_node
+
+        vertical = abs(start_node.y - end_node.y) - (start_node.height + end_node.height) / 2
+        horizontal = abs(start_node.x - end_node.x) - (start_node.width + end_node.width) / 2
+
+        if vertical > horizontal:
+            if start_node.y > end_node.y:
+                start_y = start_node.y
+                end_y = end_node.y + end_node.height
+                start_x = start_node.x + start_node.width / 2
+                end_x = end_node.x + end_node.width / 2
+            else:
+                start_y = start_node.y + start_node.height
+                end_y = end_node.y
+                start_x = start_node.x + start_node.width / 2
+                end_x = end_node.x + end_node.width / 2
+        else:
+            if start_node.x > end_node.x:
+                start_y = start_node.y + start_node.height / 2
+                end_y = end_node.y + end_node.height / 2
+                start_x = start_node.x
+                end_x = end_node.x + end_node.width
+            else:
+                start_y = start_node.y + start_node.height / 2
+                end_y = end_node.y + end_node.height / 2
+                start_x = start_node.x + start_node.width
+                end_x = end_node.x
+                
+        self.start_pos = (start_x, start_y)
+        self.end_pos = (end_x, end_y)
+        self.k = (end_y - start_y) / (end_x - start_x)
+        self.b = (start_y * end_x - end_y * start_x) / (end_x - start_x)
+
+    def checkClicked(self, x, y):
+        expect_y = x * self.k + self.b
+        if abs(y - expect_y) < 5:
+            return True
+    
+    def drawLine(self, qp):
+        pen = QPen(Qt.black, 2, Qt.SolidLine)
+
+        qp.setPen(pen)
+        qp.drawLine(self.start_pos[0], self.start_pos[1],
+                    self.end_pos[0], self.end_pos[1])
 
 class TreeFrame(MyFrame):
     def __init__(self, widget=None, title=''):
@@ -68,17 +133,111 @@ class TreeFrame(MyFrame):
         self.mouseReleaseEvent=self.onMouseRelease
 
         self.nodes_dict = {}
+        self.line_dict = {}
         self.max_node_id = 0
         self.press_begin_pos = ()
         self.press_begin_node = None
         self.mouse_move_flag = False
+        self.add_link_node = None
+
+    def loadUINode(self):
+        path = file_util.getUINodePath()
+        try:
+            f = open(path, 'r')
+            content = f.read().strip('\n')
+            f.close()
+        except IOError:
+            print "Read UI failed"
+        
+        info = json.loads(content)
+        for key, value in info.iteritems():
+            node = Node(**value)
+            self.nodes_dict[node.node_id] = node
+        for node in self.nodes_dict.itervalues():
+            nexts_ids = storyline_util.GetNextStoryNodeIds(node.node_id)
+            for n_id in nexts_ids:
+                node.next_node
+                n_node = self.nodes_dict[n_id]
+                line = Line(node, n_node)
+                self.line_dict[line.id] = line
+                node.relative_lines.append(line)
+                n_node.relative_lines.append(line)
+        self.update()
+
+    def saveUINode(self):
+        result = {}
+        for node in self.nodes_dict.itervalues():
+            result[node.node_id] = node.Pack()
+        path = file_util.getUINodePath()
+        try:
+            f = open(path, 'w')
+            f.write(json.dumps(result))
+            f.close()
+        except IOError:
+            print "Save UI failed"
+        return
+    
+    def onSectionChanged(self):
+        self.loadUINode()
+    
+    def onAddNode(self, tool_id, drop_pos):
+        new_node = Node(tool_id, drop_pos[0], drop_pos[1])
+        self.nodes_dict[new_node.node_id] = new_node
+        self.max_node_id += 1
+        self.saveUINode()
+
+    def onDeleteNode(self, node):
+        for line in self.relative_lines:
+            self.onDeleteLine(line, from_node=node)
+        self.nodes_dict.pop(node.node_id)
+        node.destroy()
+        self.saveUINode()
+
+    def onAddLine(self, begin_node, end_node):
+        begin_node.addNext(end_node)
+        line = line = Line(begin_node, end_node)
+        self.line_dict[line.id] = line
+        begin_node.relative_lines.append(line)
+        end_node.relative_lines.append(line)
+        self.update()
+    
+    def onDeleteLine(self, line, from_node=None):
+        if line.begin_node is not from_node:
+            line.begin_node.cancelNext(line.end_node)
+            line.begin_node.relative_lines.remove(line)
+        if line.end_node is not from_node:
+            line.end_node.relative_lines.remove(line)
+        self.line_dict.pop(line.id)
+        self.update()
+
+    def eventForNode(self, node, e):
+        menu = QMenu(self)
+        next_action = menu.addAction("Add Next")
+        delete_action = menu.addAction("Delete")
+        action = menu.exec_(self.mapToGlobal(e.pos()))
+        if action == next_action:
+            self.add_link_node = node
+        elif action == delete_action:
+            self.onDeleteNode(node)
+    
+    def eventForLine(self, line):
+        menu = QMenu(self)
+        delete_action = menu.addAction("Delete")
+        action = menu.exec_(self.mapToGlobal(e.pos()))
+        if action == delete_action:
+            self.onDeleteLine(line)
 
     def contextMenuEvent(self, e):
-        menu = QMenu(self)
-        quitAction = menu.addAction("Quit")
-        action = menu.exec_(self.mapToGlobal(e.pos()))
-        if action == quitAction:
-            qApp.quit()
+        x = e.pos().x()
+        y = e.pos().y()
+        for node in self.nodes_dict.itervalues():
+            if node.checkClicked(x, y):
+                self.eventForNode(node, e)
+                return
+        for line in self.lines_dict.itervalues():
+            if line.checkClicked(x, y):
+                self.eventForLine(line, e)
+                return
 
     def onMousePress(self, e):
         x = e.pos().x()
@@ -86,6 +245,9 @@ class TreeFrame(MyFrame):
         self.press_begin_pos = (x, y)
         for node in self.nodes_dict.itervalues():
             if node.checkClicked(x, y):
+                if self.add_link_node:
+                    self.onAddLine(self.add_link_node, node)
+                    return
                 self.press_begin_node = node
                 return
 
@@ -120,13 +282,15 @@ class TreeFrame(MyFrame):
 
     def dropEvent(self, e):
         print e.mimeData().text()
-        if not data_util.cur_story:
+        cur_section = cur_story.category.cur_section
+        if not cur_story.id or not cur_section or cur_section.id == 'root':
+            print "IN??"
             return
         tool_id = int(e.mimeData().text())
         drop_pos = (e.pos().x(), e.pos().y())
         if tool_id in tools:
-            self.nodes_dict[self.max_node_id] = Node(self.max_node_id, tool_id, drop_pos[0], drop_pos[1])
-            self.max_node_id += 1
+            print "Node??"
+            self.onAddNode(tool_id, drop_pos)
         self.update()
 
     def paintEvent(self, e):
@@ -135,5 +299,7 @@ class TreeFrame(MyFrame):
         qp.begin(self)
         for node in self.nodes_dict.itervalues():
             node.drawNode(qp)
+        for line in self.line_dict.itervalues():
+            line.drawLine(qp)
         qp.end()
 

@@ -11,3 +11,10 @@ STORY_TYPE_DICT = {
     'JumpNode': 4,
 }
 
+TEMPLATES = {
+		0: 'sequence.txt',
+		1: 'branch.txt',
+		2: 'event.txt',
+		3: 'dialog.txt',
+		4: 'jump.txt',
+	}

@@ -7,7 +7,7 @@ import time
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 
 from MyFrame import MyFrame
 from ToolFrame import ToolFrame
@@ -75,11 +75,6 @@ class CentralWidget(QWidget):
 class CentralWindow(QMainWindow):
     def __init__(self):
         super(CentralWindow, self).__init__()
-        
-        # 读取故事元数据
-        if not data_util.getAllStroies():
-            QMessageBox.information(self, "启动失败", "故事文件缺失",
-                QMessageBox.Yes | QMessageBox.No)
 
         self.initMenu()
         
@@ -99,6 +94,10 @@ class CentralWindow(QMainWindow):
         open_story_act = QAction("打开故事", self)
         open_story_act.setShortcut('Ctrl+O')
         open_story_act.triggered.connect(self.onOpenStory)
+
+        save_story_act = QAction("保存故事", self)
+        save_story_act.setShortcut('Ctrl+S')
+        save_story_act.triggered.connect(self.onSaveStory)
 
         img_path = file_util.getImageFilePath('exit.png')
         exit_act = QAction(QIcon(img_path), '退出', self)
@@ -126,21 +125,22 @@ class CentralWindow(QMainWindow):
         story_path = QFileDialog.getExistingDirectory(self,  
                                     "选取文件",  
                                     file_util.getStoryFileRoot())
-        story_name = story_path.split('/')[-1]
-        print story_name
+        story_id = story_path.split('/')[-1]
+        print story_id
         # 检查是否合法
-        if data_util.hasStory(story_name):
-            data_util.openStory(story_path)
+        if data_util.OpenStory(story_id):
             self.refreshFrames()
         else:
             QMessageBox.information(self, "打开失败", "请选择故事文件夹",
                 QMessageBox.Yes | QMessageBox.No)
-        
+    
+    def onSaveStory(self):
+        data_util.SaveStory()
 
     def onStroyBuild(self, data_dict):
         self.input_dlg = None
         name = data_dict['name']['widget'].text()
-        if data_util.newStory(name):
+        if data_util.NewStory(name):
             self.refreshFrames()
 
     def refreshFrames(self):
