@@ -47,13 +47,36 @@ class StoryNode(object):
         script_file.write(template_file.read())
         script_file.close()
         template_file.close()
+    
+    def GetScrptPath(self):
+        root_path = file_util.getStoryFileRoot()
+        return ''.join((root_path, '\\', self.story_id, '\\', self.section_id, '\\', self.id, '.stln'))
 
+    def Export(self):
+        next_ids = []
+        for sn in self.nexts:
+            next_ids.append(sn.id)
+        root_path = file_util.getStoryFileRoot()
+        script_path = ''.join((root_path, '\\', self.story_id, '\\', self.section_id, '\\', self.id, '.stln'))
+        script_file = open(script_path, 'r')
+        sc = script_file.read()
+        script_file.close()
+        return {'id':self.id, 'nexts': next_ids, 'script': sc}
+        # meta = "%s" % self.id
+        # for n in self.nexts:
+        #     meta = ''.join((meta, n.id))
+        # meta = ''.join((meta, '$;'))
+        # script_path = ''.join((root_path, '\\', self.story_id, '\\', self.section_id, '\\', self.id, '.stln'))
+        # script_file = open(script_path, 'r')
+        # sc = ''.join(sc_file.read(), '$;')
+        # return ''.join((meta, sc))
 
 class StoryLine(object):
-    def __init__(self, story_id, section_id):
+    def __init__(self, story_id, section_id, start_node_id):
         self.story_line_dict = {}
         self.story_id = story_id
         self.section_id = section_id
+        self.start_node_id = start_node_id
     
     def LoadStoryLine(self):
         root_path = file_util.getStoryFileRoot()
@@ -66,9 +89,12 @@ class StoryLine(object):
             f.close()
         else:
             f = open(sl_file_path, 'w')
+            # 跟章节的话建一个只显示章节名称的Node
             f.write(json.dumps(self.story_line_dict))
             f.close()
             story_content_dict = {}
+        if self.section_id == "root":
+            self.AddNode("root", 0)
     
     def GenNodes(self, node_dict):
         for key, value in node_dict.iteritems():
@@ -98,6 +124,8 @@ class StoryLine(object):
         new_node.LoadFromDict({'id': new_id, "name": name, "n_type": n_type})
         new_node.GenScript()
         self.story_line_dict[new_id] = new_node
+        if not self.start_node_id:
+            self.start_node_id = new_node.id
         self.SaveStoryLine()
         return new_id
     
@@ -107,6 +135,14 @@ class StoryLine(object):
             for node in self.story_line_dict.itervalues():
                 if old in node.nexts:
                     node.nexts.remove(old)
+        if node_id == self.start_node_id:
+            if old.nexts:
+                self.start_node_id = old.nexts[0].id
+            else:
+                if self.story_line_dict:
+                    self.start_node_id = self.story_line_dict.keys[0]
+                else:
+                    self.start_node_id = 0
 
     def BuildLink(self, node_id1, node_id2):
         node1 = self.story_line_dict[node_id1]
@@ -117,7 +153,16 @@ class StoryLine(object):
         node1 = self.story_line_dict[node_id1]
         node2 = self.story_line_dict[node_id2]
         node1.DropLink(node2)
-
+    
+    def Export(self):
+        ret = {}
+        for node in self.story_line_dict.itervalues():
+            ret[node.id] = node.Export()
+        return ret
+        # ret = ""
+        # for node in self.story_line_dict.itervalues():
+        #     ret = ''.join((ret, node.Export()))
+        # return ret
 
 class Section(object):
     def __init__(self, story_id, idx):
@@ -132,13 +177,14 @@ class Section(object):
     def LoadSection(self, dic):
         self.id = dic.get("id", 0)
         self.name = dic.get("name", '')
+        start_node_id = dic.get("start_node_id", 0)
         
         root_path = file_util.getStoryFileRoot()
         dir_path = ''.join((root_path, '\\', self.story_id, '\\', self.id))
         if not os.path.exists(dir_path):
             os.mkdir(dir_path)
 
-        self.story_line = StoryLine(self.story_id, self.id)
+        self.story_line = StoryLine(self.story_id, self.id, start_node_id)
         self.story_line.LoadStoryLine()
     
     def Link(self, sub_sections):
@@ -155,6 +201,7 @@ class Section(object):
             "id": self.id,
             "name": self.name,
             "parent_id": self.parent.id if self.parent else None,
+            "start_node_id": self.story_line.start_node_id,
             "sub_sections": list()
             }
         for sub in self.sub_sections.itervalues():
@@ -164,7 +211,15 @@ class Section(object):
     def SaveStoryLine(self):
         if self.id != 'root':
             self.story_line.SaveStoryLine()
-
+    
+    def Export(self):
+        sub_list = []
+        for sub in self.sub_sections.itervalues():
+            sub_list.append(sub.id)
+        return {"id": self.id, "name": self.name, "sub_sections": sub_list, "story_line": self.story_line.Export()}
+        # meta = "%s,%s,%s$;" % (self.id, self.name, self.start_node_id)
+        # rest = self.story_line.Export()
+        # return ''.join((meta, rest))
 
 class Category(object):
     def __init__(self, story_id):
@@ -215,6 +270,7 @@ class Category(object):
             section = Section(self.story_id, self.max_idx)
             section.name = cur_story.name
             section.id = "root"
+            section.LoadSection({"id": "root", "name": "root"})
             self.section_dict["root"] = section
             self.SaveCategory()
             return
@@ -290,6 +346,18 @@ class Category(object):
         print section_key
         print self.section_dict
         self.cur_section = self.section_dict.get(section_key)
+    
+    def ExportOne(self, section, ret):
+        ret[section.id] = section.Export()
+        sorted_sub_sections = sorted(section.sub_sections.values(), key=lambda x: x.idx)
+        for s in sorted_sub_sections:
+            self.ExportOne(s, ret)
+
+    def Export(self):
+        # recursse from root
+        ret = {}
+        self.ExportOne(self.section_dict['root'], ret)
+        return ret
 
 
 class Story(object):
@@ -367,3 +435,15 @@ class Story(object):
             self.stories_dict.pop(story_id)
             stories_root = file_util.getStoryFileRoot()
             shutil.rmtree(''.join((stories_root, "\\", story_id)))
+    
+    def ExportStory(self, export_path):
+        if not self.id:
+            return
+        # meta = ','.join((self.id, self.name))
+        # content = ''.join((meta, '$;', self.category.Export()))
+        ret = {"id": self.id, "name": self.name, "category": self.category.Export()}
+        f = open(export_path, 'w')
+        f.write(json.dumps(ret))
+        f.close()
+        return
+        

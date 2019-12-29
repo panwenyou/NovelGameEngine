@@ -26,5 +26,5 @@ def SaveCategory():
     cur_story.category.SaveCategory()
 
 
-def GetRootSubSections():
-    return cur_story.category.section_dict
+def GetRootSection():
+    return cur_story.category.section_dict['root']

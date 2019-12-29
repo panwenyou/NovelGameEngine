@@ -16,3 +16,5 @@ def NewStory(name):
 def SaveStory():
 	cur_story.SaveStory()
 
+def ExportStory(path):
+	cur_story.ExportStory(path)

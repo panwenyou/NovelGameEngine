@@ -16,7 +16,7 @@ from PropertyFrame import PropertyFrame
 from CategoryFrame import CategoryFrame
 from InputDlg import InputDlg
 
-from utils import file_util, common_util, data_util
+from utils import file_util, common_util, data_util, net_util
 
 
 class CentralWidget(QWidget):
@@ -99,6 +99,14 @@ class CentralWindow(QMainWindow):
         save_story_act.setShortcut('Ctrl+S')
         save_story_act.triggered.connect(self.onSaveStory)
 
+        export_story_act = QAction("导出故事", self)
+        export_story_act.setShortcut('Ctrl+E')
+        export_story_act.triggered.connect(self.onExportStory)
+
+        upload_story_act = QAction("上传", self)
+        upload_story_act.setShortcut('Ctrl+U')
+        upload_story_act.triggered.connect(self.onUploadStory)
+
         img_path = file_util.getImageFilePath('exit.png')
         exit_act = QAction(QIcon(img_path), '退出', self)
         exit_act.setShortcut('Ctrl+Q')
@@ -109,6 +117,8 @@ class CentralWindow(QMainWindow):
         file_menu = menubar.addMenu('文件')
         file_menu.addAction(new_story_act)
         file_menu.addAction(open_story_act)
+        file_menu.addAction(export_story_act)
+        file_menu.addAction(upload_story_act)
         file_menu.addAction(exit_act)
 
         self.toolbar = self.addToolBar('退出')
@@ -136,13 +146,42 @@ class CentralWindow(QMainWindow):
     
     def onSaveStory(self):
         data_util.SaveStory()
+    
+    def onExportStory(self):
+        filename_choose, filetype = QFileDialog.getSaveFileName(self,  
+                                    "文件保存",  
+                                    file_util.getStoryFileRoot(),
+                                    "All Files (*);;Story Export Files (*.stex)")
+        data_util.ExportStory(filename_choose)
+    
+    def onUploadStory(self):
+        fileName_choose, filetype = QFileDialog.getOpenFileName(self,  
+                                    "选取文件",  
+                                    file_util.getStoryFileRoot(),
+                                    "All Files (*);;Story Export Files (*.stex)")
+        if filename_choose:
+            def startUpload(data_dict):
+                user = data_dict['user']['widget'].text()
+                password = data_dict['password']['widget'].text()
+                ret = net_util.UploadStoryFile(filename_choose, user, password)
+                if ret:
+                    QMessageBox.information(self, "上传成功", "上传成功",
+                        QMessageBox.Yes | QMessageBox.No)
+                else:
+                    QMessageBox.information(self, "上传失败", "上传失败",
+                        QMessageBox.Yes | QMessageBox.No)
+
+            self.input_dlg = InputDlg()
+            self.input_dlg.setGeometry(300, 100, 200, 100)
+            self.input_dlg.buildInput((('user', '用户名'),('password', '密码')), startUpload)
+            self.input_dlg.show()
 
     def onStroyBuild(self, data_dict):
         self.input_dlg = None
         name = data_dict['name']['widget'].text()
         if data_util.NewStory(name):
             self.refreshFrames()
-
+    
     def refreshFrames(self):
         self.widget.refreshUI()
     

@@ -68,7 +68,9 @@ class MyTreeWidget(QTreeWidget):
             print current.section_id
             self.cur_item = current
             section_util.OnSectionChanged(current.section_id)
-            cur_wnd.widget.middle_frame.update()
+            old_id = getattr(previous, 'section_id', None)
+            new_id = current.section_id
+            cur_wnd.widget.middle_frame.onSectionChanged(old_id, new_id)
 
     def onAddAction(self):
         self.input_dlg = InputDlg.InputDlg()
@@ -115,17 +117,18 @@ class MyTreeWidget(QTreeWidget):
             section_util.RenameSection(self.cur_item.section_id, name)
             self.cur_item.setText(0, name)
 
-    def buildTreeItems(self, sections, parent=None):
+    def buildTreeItems(self, section, parent=None):
         # 递归创建目录树
-        for key, section in sections.iteritems():
-            name = section.name
-            if parent:
-                cate_item = MyTreeWidgetItem(key, name, parent)
-            else:
-                cate_item = MyTreeWidgetItem(key, name, self)
-            sub_sections = section.sub_sections
-            if sub_sections:
-                self.buildTreeItems(sub_sections, cate_item)
+        name = section.name
+        key = section.id
+        if parent:
+            cate_item = MyTreeWidgetItem(key, name, parent)
+        else:
+            cate_item = MyTreeWidgetItem(key, name, self)
+        sub_sections = section.sub_sections.values()
+        sorted_sub_sections = sorted(sub_sections, key=lambda sub: sub.idx)
+        for sub in sorted_sub_sections:
+            self.buildTreeItems(sub, cate_item)
 
 class CategoryFrame(MyFrame):
     def __init__(self, widget=None, title=''):
@@ -145,7 +148,7 @@ class CategoryFrame(MyFrame):
     def buildCategory(self):
         # 要先清空原来的树目录
         self.treeWidget.clear()
-        self.treeWidget.buildTreeItems(section_util.GetRootSubSections())
+        self.treeWidget.buildTreeItems(section_util.GetRootSection())
         self.treeWidget.update()
 
     def onNewCategory(self):

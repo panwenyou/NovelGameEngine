@@ -7,8 +7,6 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 
-from utils import file_utils
-
 
 class MyFrame(QFrame):
 	def __init__(self, widget=None, title=''):

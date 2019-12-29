@@ -7,8 +7,6 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QIcon, QDrag
 from PyQt5.QtCore import Qt, QMimeData
 
-
-from utils import file_utils
 from MyFrame import MyFrame
 
 from data.tools_data import tools
