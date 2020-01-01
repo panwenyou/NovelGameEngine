@@ -14,8 +14,10 @@ from utils.model import Story
 
 __builtins__.cur_story = Story()
 
+debug_dict = {}
 
 def cb(data_dict):
+    global debug_dict
     code = data_dict['code']['widget'].text()
     print "input:", code
     exec(code)

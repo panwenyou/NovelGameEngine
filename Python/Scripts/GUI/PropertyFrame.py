@@ -49,7 +49,7 @@ class TextWidget(QWidget):
         self.setLayout(self.h_layout)
     
     def OnSave(self):
-        new_name = str(self.text_edit.text())
+        new_name = self.text_edit.text()
         storyline_util.OnChangeStoryNodeName(self.node_id, new_name)
         cur_wnd.widget.middle_frame.update()
 

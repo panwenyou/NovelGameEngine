@@ -5,6 +5,7 @@ from data import consts, tools_data
 import os
 import json
 import shutil
+import codecs
 
 
 class StoryNode(object):
@@ -42,8 +43,8 @@ class StoryNode(object):
         root_path = file_util.getStoryFileRoot()
         script_path = ''.join((root_path, '\\', self.story_id, '\\', self.section_id, '\\', self.id, '.stln'))
         template_path = file_util.getTemplatePath(consts.TEMPLATES[self.n_type])
-        template_file = open(template_path, 'r')
-        script_file = open(script_path, 'w')
+        template_file = codecs.open(template_path, 'r', 'utf-8')
+        script_file = codecs.open(script_path, 'w', 'utf-8')
         script_file.write(template_file.read())
         script_file.close()
         template_file.close()
@@ -58,7 +59,7 @@ class StoryNode(object):
             next_ids.append(sn.id)
         root_path = file_util.getStoryFileRoot()
         script_path = ''.join((root_path, '\\', self.story_id, '\\', self.section_id, '\\', self.id, '.stln'))
-        script_file = open(script_path, 'r')
+        script_file = codecs.open(script_path, 'r', 'utf-8')
         sc = script_file.read()
         script_file.close()
         return {'id':self.id, 'nexts': next_ids, 'script': sc}
@@ -83,12 +84,12 @@ class StoryLine(object):
         sl_file_path = ''.join((root_path, '\\', self.story_id, '\\', self.section_id, '\\', 'storyline.json'))
         if os.path.exists(sl_file_path):
             # {id:{id, name, []}, id:{id, name, []}}
-            f = open(sl_file_path, 'r')
+            f = codecs.open(sl_file_path, 'r', 'utf-8')
             story_content_dict = json.loads(f.read().strip('\n'))
             self.GenNodes(story_content_dict)
             f.close()
         else:
-            f = open(sl_file_path, 'w')
+            f = codecs.open(sl_file_path, 'w', 'utf-8')
             # 跟章节的话建一个只显示章节名称的Node
             f.write(json.dumps(self.story_line_dict))
             f.close()
@@ -114,7 +115,7 @@ class StoryLine(object):
             pack_dict[key] = value.Pack()
         root_path = file_util.getStoryFileRoot()
         sl_file_path = ''.join((root_path, '\\', self.story_id, '\\', self.section_id, '\\', 'storyline.json'))
-        f = open(sl_file_path, 'w')
+        f = codecs.open(sl_file_path, 'w', 'utf-8')
         f.write(json.dumps(pack_dict))
         f.close()
     
@@ -299,7 +300,7 @@ class Category(object):
         print 'category_file_path:', cat_file_path
         if os.path.exists(cat_file_path):
             try:
-                f = open(cat_file_path, 'r')
+                f = codecs.open(cat_file_path, 'r', 'utf-8')
                 content = json.loads(f.read().strip('\n'))
             except IOError:
                 # 重试
@@ -307,7 +308,7 @@ class Category(object):
                 return
         else:
             try:
-                f = open(cat_file_path, 'w+')
+                f = codecs.open(cat_file_path, 'w+')
                 content = {"max_idx": 0, "sections": dict()}
                 f.write(json.dumps(content))
             except IOError:
@@ -330,7 +331,7 @@ class Category(object):
         root_path = file_util.getStoryFileRoot()
         cat_file_path = ''.join((root_path, '\\', self.story_id, '\\category.json'))
         try:
-            f = open(cat_file_path, 'w')
+            f = codecs.open(cat_file_path, 'w', 'utf-8')
             catetory_string = json.dumps(self.Pack())
             f.write(catetory_string)
             f.close()
@@ -373,7 +374,7 @@ class Story(object):
 
         # 读故事列表json
         try:
-            meta = open(''.join((stories_root, "\\stories.json")), "r")
+            meta = codecs.open(''.join((stories_root, "\\stories.json")), "r", 'utf-8')
         except:
             print 'read failed: ', ''.join((stories_root, "\\stories.json"))
             return False
@@ -408,7 +409,7 @@ class Story(object):
         self.category.LoadCategory()
 
         try:
-            meta = open(''.join((stories_root, "\\stories.json")), "w")
+            meta = codecs.open(''.join((stories_root, "\\stories.json")), "w", 'utf-8')
             meta.write(result)
             meta.close()
         except:
@@ -442,7 +443,7 @@ class Story(object):
         # meta = ','.join((self.id, self.name))
         # content = ''.join((meta, '$;', self.category.Export()))
         ret = {"id": self.id, "name": self.name, "category": self.category.Export()}
-        f = open(export_path, 'w')
+        f = codecs.open(export_path, 'w', 'utf-8')
         f.write(json.dumps(ret))
         f.close()
         return

@@ -7,21 +7,23 @@ import json
 
 
 def OnAddNode(type_id):
-	default_name = "未命名"
-	return cur_story.category.cur_section.story_line.AddNode(default_name, type_id)
-
+	default_name = u"未命名"
+	ret = cur_story.category.cur_section.story_line.AddNode(default_name, type_id)
+	cur_story.SaveStory()
+	return ret
 
 def OnDeleteNode(node_id):
 	cur_story.category.cur_section.story_line.DeleteNode(node_id)
-
+	cur_story.SaveStory()
 
 def OnAddNext(node_id, next_node_id):
 	cur_story.category.cur_section.story_line.BuildLink(node_id, next_node_id)
+	cur_story.SaveStory()
 
 
 def OnCancelNext(node_id, next_node_id):
 	cur_story.category.cur_section.story_line.BreakLink(node_id, next_node_id)
-
+	cur_story.SaveStory()
 
 def OnChangeStoryNodeName(node_id, name):
 	cur_story.category.cur_section.story_line.story_line_dict[node_id].name = name
@@ -45,8 +47,6 @@ def GetStoryNode(node_id):
 
 
 def GetStoryNodeName(node_id):
-	print "####"
-	print type(cur_story.category.cur_section.story_line.story_line_dict[node_id].name)
 	return cur_story.category.cur_section.story_line.story_line_dict[node_id].name
 
 

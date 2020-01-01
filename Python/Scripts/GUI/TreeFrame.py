@@ -5,6 +5,7 @@ import sys
 import os
 import json
 import math
+import codecs
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QIcon, QDrag, QPainter, QColor, QBrush, QPen
 from PyQt5.QtCore import Qt, QMimeData, QRect
@@ -53,7 +54,7 @@ class Node(object):
         qp.setPen(col)
         qp.setBrush(QColor(color[0], color[1], color[2], color[3]))
         qp.drawRect(self.x, self.y, self.width, self.height)
-        text = "%s(%s)" % (storyline_util.GetStoryNodeName(self.node_id), tools[self.tool_id]['name'])
+        text = u"%s(%s)" % (storyline_util.GetStoryNodeName(self.node_id), tools[self.tool_id]['name'])
         qp.drawText(QRect(self.x, self.y, self.width, self.height), Qt.AlignCenter, text)
 
     def Pack(self):
@@ -179,27 +180,28 @@ class TreeFrame(MyFrame):
 
     def loadUINode(self):
         path = file_util.getUINodePath()
-        try:
-            f = open(path, 'r')
-            content = f.read().strip('\n')
-            f.close()
-        except IOError:
-            print "Read UI failed"
-            return
-        
-        info = json.loads(content)
-        for key, value in info.iteritems():
-            node = Node(**value)
-            self.nodes_dict[node.node_id] = node
-        for node in self.nodes_dict.itervalues():
-            nexts_ids = storyline_util.GetNextStoryNodeIds(node.node_id)
-            for n_id in nexts_ids:
-                node.next_node
-                n_node = self.nodes_dict[n_id]
-                line = Line(node, n_node)
-                self.line_dict[line.id] = line
-                node.relative_lines.append(line)
-                n_node.relative_lines.append(line)
+        if os.path.exists(path):
+            try:
+                f = codecs.open(path, 'r', 'utf-8')
+                content = f.read().strip('\n')
+                f.close()
+            except IOError:
+                print "Read UI failed"
+                return
+            info = json.loads(content)
+            for key, value in info.iteritems():
+                node = Node(**value)
+                self.nodes_dict[node.node_id] = node
+            for node in self.nodes_dict.itervalues():
+                nexts_ids = storyline_util.GetNextStoryNodeIds(node.node_id)
+                print "TTTTTTTTTTTT"
+                print nexts_ids
+                for n_id in nexts_ids:
+                    n_node = self.nodes_dict[n_id]
+                    line = Line(node, n_node)
+                    self.line_dict[line.id] = line
+                    node.relative_lines.append(line)
+                    n_node.relative_lines.append(line)
         self.update()
 
     def saveUINode(self):
@@ -208,7 +210,7 @@ class TreeFrame(MyFrame):
             result[node.node_id] = node.Pack()
         path = file_util.getUINodePath()
         try:
-            f = open(path, 'w')
+            f = codecs.open(path, 'w', 'utf-8')
             f.write(json.dumps(result))
             f.close()
         except IOError:
@@ -226,8 +228,6 @@ class TreeFrame(MyFrame):
         self.add_link_node = None
 
     def onSectionChanged(self, old_id, new_id):
-        if old_id and old_id != new_id:
-            self.saveUINode()
         self.clearUINode()
         self.loadUINode()
     

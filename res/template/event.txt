@@ -1,7 +1,0 @@
-# 这是一行注释 this is a line of comment 
-# 主要是涉及属性的变化
-# 请注意，如果正文中涉及到故事线中没有设置好的属性，那么就会报错喔
-# 支持函数：max，min，运算符 +，-，*，/，%
-
-charm = charm + 1
-exp = min(100, exp + 10)
